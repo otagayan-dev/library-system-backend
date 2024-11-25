@@ -1,5 +1,5 @@
 import { User } from "../entities/user.entity";
-import { Role } from "../entities/role.enum";
+import { Role } from "../enums/role.enum";
 import {
   IsEmail,
   IsEnum,
@@ -8,9 +8,12 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from "class-validator";
 
-export class CreateUserDto implements Omit<User, "id"> {
+export class CreateUserDto
+  implements Omit<User, "id" | "createdAt" | "updatedAt">
+{
   @IsNotEmpty()
   @MaxLength(50)
   @IsString()
@@ -27,6 +30,7 @@ export class CreateUserDto implements Omit<User, "id"> {
   })
   role: Role;
 
+  @ValidateIf((o) => o.role !== Role.User) // Only validate if role is not Role.User
   @IsNotEmpty()
   @IsString()
   @MinLength(10, {
@@ -46,10 +50,9 @@ export class CreateUserDto implements Omit<User, "id"> {
   })
   password: string;
 
-  @IsEmail()
   @IsString()
   @IsNotEmpty()
-  email: string;
+  idNumber: string;
 
   @IsNotEmpty()
   @IsString()

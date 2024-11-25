@@ -1,11 +1,12 @@
 import { BeforeInsert, Column, Entity, PrimaryColumn } from "typeorm";
-import { Role } from "./role.enum";
+import { Role } from "../enums/role.enum";
 import * as crypto from "crypto";
 import * as bcrypt from "bcrypt";
 import { Exclude } from "class-transformer";
+import { TimestampedEntity } from "src/common/entities/TimestampedEntity";
 
 @Entity()
-export class User {
+export class User extends TimestampedEntity {
   @PrimaryColumn()
   id: string;
 
@@ -38,8 +39,9 @@ export class User {
   @Column({
     type: "varchar",
     length: 254,
+    unique: true,
   })
-  email: string;
+  idNumber: string;
 
   @Column({
     type: "varchar",

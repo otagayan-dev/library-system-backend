@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -11,6 +12,7 @@ import { Observable } from "rxjs";
 
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {
+  private readonly logger = new Logger(RefreshTokenGuard.name);
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -29,8 +31,14 @@ export class RefreshTokenGuard implements CanActivate {
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>("JWT_SECRET"),
       });
+      this.logger.debug("RefreshTokenGuard:Payload", {
+        payload,
+      });
 
-      request.user = payload;
+      request.user = {
+        ...payload,
+        id: payload.sub,
+      };
       return true;
     } catch (error) {
       throw new UnauthorizedException("Invalid or expired refresh token");

@@ -21,8 +21,13 @@ export class UsersService {
       const user = this.userRepository.create(createUserDto);
       return await this.userRepository.save(user);
     } catch (error) {
-      if (error.code === "23505")
-        throw new ConflictException("Username already exists");
+      if (error.code === "23505") {
+        if (error.detail.includes("idNumber"))
+          throw new ConflictException("ID Number already exists");
+        if (error.detail.includes("username"))
+          throw new ConflictException("Username already exists");
+      }
+
       throw error;
     }
   }

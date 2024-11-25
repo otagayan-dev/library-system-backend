@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { UsersService } from "src/users/users.service";
 import { InvalidLoginException } from "./errors/InvalidLoginException";
 import { User } from "src/users/entities/user.entity";
@@ -8,6 +8,8 @@ import * as bcrypt from "bcrypt";
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -38,6 +40,9 @@ export class AuthService {
     const user = await this.usersService.findByUsername(username);
     if (user === null) throw new InvalidLoginException();
     await this.validatePassword(password, user.password);
+    this.logger.debug("AuthService:ValidateUser", {
+      user,
+    });
     return user;
   }
 
@@ -45,14 +50,13 @@ export class AuthService {
     access_token: string;
     refresh_token: string;
   }> {
-    const { firstName, lastName, id, username, role } = user;
+    const { id, username, role } = user;
     const payload: JwtPayload = {
       sub: id,
-      firstName,
-      lastName,
       username,
       role,
     };
+    this.logger.debug("AuthService:Login", { user, payload });
 
     return {
       access_token: this.jwtService.sign(payload),

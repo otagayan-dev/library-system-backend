@@ -3,9 +3,11 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UsersModule } from "./users/users.module";
-import { User } from "./users/entities/user.entity";
 import { ConfigModule } from "@nestjs/config";
 import { AuthModule } from "./auth/auth.module";
+import { BooksModule } from "./books/books.module";
+import { SnakeNamingStrategy } from "typeorm-naming-strategies";
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
@@ -22,9 +24,12 @@ import { AuthModule } from "./auth/auth.module";
       password: process.env.DB_PASSWORD,
       autoLoadEntities: true,
       synchronize: true,
+      namingStrategy: new SnakeNamingStrategy(),
     }),
     UsersModule,
     AuthModule,
+    BooksModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [AppService],
