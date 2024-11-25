@@ -53,9 +53,4 @@ export class CreateUserDto
   @IsString()
   @IsNotEmpty()
   idNumber: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(30)
-  username: string;
 }

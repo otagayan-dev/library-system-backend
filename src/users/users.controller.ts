@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -15,6 +16,7 @@ import { Roles } from "./decorators/roles.decorator";
 import { Role } from "./enums/role.enum";
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 import { RolesGuard } from "src/auth/roles.guard";
+import { PaginationDto } from "src/common/dto/pagination.dto";
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("users")
@@ -28,8 +30,8 @@ export class UsersController {
   }
   @Roles(Role.Admin)
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() dto: PaginationDto) {
+    return this.usersService.findAll(dto);
   }
 
   @Roles(Role.Admin)

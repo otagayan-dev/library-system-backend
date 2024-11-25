@@ -5,6 +5,7 @@ import { User } from "src/users/entities/user.entity";
 import { JwtService } from "@nestjs/jwt";
 import { JwtPayload } from "./types/jwt-payload";
 import * as bcrypt from "bcrypt";
+import { Role } from "src/users/enums/role.enum";
 
 @Injectable()
 export class AuthService {
@@ -31,14 +32,15 @@ export class AuthService {
 
   /**
    *
-   * @param username
+   * @param idNumber
    * @param password
    * @returns {User}
    * @throws {InvalidLoginException} if invalid login credentials
    */
-  async validateUser(username: string, password: string): Promise<User> {
-    const user = await this.usersService.findByUsername(username);
+  async validateUser(idNumber: string, password: string): Promise<User> {
+    const user = await this.usersService.findByIdNumber(idNumber);
     if (user === null) throw new InvalidLoginException();
+    if (user.role === Role.User) throw new InvalidLoginException();
     await this.validatePassword(password, user.password);
     this.logger.debug("AuthService:ValidateUser", {
       user,
@@ -50,10 +52,10 @@ export class AuthService {
     access_token: string;
     refresh_token: string;
   }> {
-    const { id, username, role } = user;
+    const { id, idNumber, role } = user;
     const payload: JwtPayload = {
       sub: id,
-      username,
+      idNumber,
       role,
     };
     this.logger.debug("AuthService:Login", { user, payload });

@@ -32,6 +32,7 @@ export class User extends TimestampedEntity {
 
   @Column({
     type: "text",
+    nullable: true,
   })
   @Exclude()
   password: string;
@@ -43,13 +44,6 @@ export class User extends TimestampedEntity {
   })
   idNumber: string;
 
-  @Column({
-    type: "varchar",
-    length: 30,
-    unique: true,
-  })
-  username: string;
-
   @BeforeInsert()
   private generateId(): void {
     this.id = crypto.randomBytes(16).toString("hex"); // Generates a 32-character hexadecimal hash
@@ -57,6 +51,7 @@ export class User extends TimestampedEntity {
 
   @BeforeInsert()
   private async hashPassword(): Promise<void> {
+    if (this.role === Role.User) return;
     const saltOrRounds = 10;
     const hashedPassword = await bcrypt.hash(this.password, saltOrRounds);
     this.password = hashedPassword;

@@ -5,9 +5,10 @@ import {
 } from "@nestjs/common";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
-import { Repository } from "typeorm";
+import { FindOptionsWhere, Like, Repository } from "typeorm";
 import { User } from "./entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
+import { PaginationDto } from "src/common/dto/pagination.dto";
 
 @Injectable()
 export class UsersService {
@@ -24,20 +25,42 @@ export class UsersService {
       if (error.code === "23505") {
         if (error.detail.includes("idNumber"))
           throw new ConflictException("ID Number already exists");
-        if (error.detail.includes("username"))
-          throw new ConflictException("Username already exists");
       }
-
       throw error;
     }
   }
 
-  findByUsername(username: string): Promise<User | null> {
-    return this.userRepository.findOneBy({ username });
+  findByIdNumber(idNumber: string): Promise<User | null> {
+    return this.userRepository.findOneBy({ idNumber });
   }
 
-  findAll(): Promise<User[]> {
-    return this.userRepository.find();
+  async findAll(dto: PaginationDto): Promise<{
+    data: User[];
+    total: number;
+  }> {
+    const { page, limit, sortOrder, sortBy, search } = dto;
+    const where: FindOptionsWhere<User>[] | undefined = search
+      ? [
+          {
+            firstName: Like(`%${search}%`),
+          },
+          {
+            lastName: Like(`%${search}%`),
+          },
+          {
+            idNumber: Like(`%${search}%`),
+          },
+        ]
+      : undefined;
+    const [data, total] = await this.userRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: {
+        [sortBy]: sortOrder,
+      },
+      where,
+    });
+    return { data, total };
   }
 
   async findOne(id: string): Promise<User> {
