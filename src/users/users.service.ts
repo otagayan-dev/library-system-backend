@@ -23,8 +23,7 @@ export class UsersService {
       return await this.userRepository.save(user);
     } catch (error) {
       if (error.code === "23505") {
-        if (error.detail.includes("idNumber"))
-          throw new ConflictException("ID Number already exists");
+        throw new ConflictException("ID Number already exists");
       }
       throw error;
     }

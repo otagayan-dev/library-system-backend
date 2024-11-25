@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Logger,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "src/users/decorators/roles.decorator";
@@ -16,6 +17,7 @@ const RoleScore: Record<Role, number> = {
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -28,8 +30,10 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
+    if (request.bypassGuards) return true;
     const user = request.user; // This should be populated by JwtAuthGuard
 
+    this.logger.debug({ user, requiredRoles });
     if (
       !user ||
       !requiredRoles.some((role) => RoleScore[role] <= RoleScore[user.role])

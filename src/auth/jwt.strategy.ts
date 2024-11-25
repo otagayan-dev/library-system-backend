@@ -18,9 +18,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey: configService.get<string>("JWT_SECRET"),
     });
+    this.logger.debug("Initialized");
   }
 
-  async validate({ sub, idNumber, role, ...others }: JwtPayload) {
+  async validate(payload: JwtPayload) {
+    const { sub, idNumber, role } = payload;
+    this.logger.debug("validate", payload);
     return {
       id: sub,
       idNumber,

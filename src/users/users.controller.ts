@@ -17,8 +17,9 @@ import { Role } from "./enums/role.enum";
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 import { RolesGuard } from "src/auth/roles.guard";
 import { PaginationDto } from "src/common/dto/pagination.dto";
+import { SecretKeyGuard } from "src/auth/secret-key.guard";
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SecretKeyGuard, JwtAuthGuard, RolesGuard)
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
