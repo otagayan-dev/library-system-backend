@@ -29,15 +29,16 @@ export class UsersController {
   @Roles(Role.Admin)
   @Post()
   create(@Body() createUserDto: CreateUserDto, @Req() request) {
-    return this.usersService.create(
-      createUserDto,
-      request.bypassGuards
-        ? {
-            id: "root",
-            role: Role.SuperAdmin,
-          }
-        : request.user,
-    );
+    const user = request.bypassGuards
+      ? {
+          id: "root",
+          role: Role.SuperAdmin,
+        }
+      : request.user;
+    return this.usersService.create(createUserDto, {
+      action: "create",
+      user,
+    });
   }
   @Roles(Role.Admin)
   @Get()

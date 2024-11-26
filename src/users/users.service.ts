@@ -20,10 +20,24 @@ export class UsersService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto, user: User): Promise<User> {
+  async create(
+    createUserDto: CreateUserDto,
+    options: { action: "create"; user: User },
+  );
+  async create(createUserDto: CreateUserDto, options: { action: "register" });
+  async create(
+    createUserDto: CreateUserDto,
+    options: { action: "register" | "create"; user?: User },
+  ): Promise<User> {
+    const { action, user } = options;
+
     try {
       // Validates if action is permitted
-      if (createUserDto.role !== Role.User && user.role !== Role.SuperAdmin)
+      if (
+        action === "create" &&
+        createUserDto.role !== Role.User &&
+        user.role !== Role.SuperAdmin
+      )
         throw new UnauthorizedException();
       const createdUser = this.userRepository.create(createUserDto);
       return await this.userRepository.save(createdUser);
@@ -56,14 +70,19 @@ export class UsersService {
             idNumber: Like(`%${search}%`),
           },
         ]
-      : undefined;
+      : [];
     const [data, total] = await this.userRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
       order: {
         [sortBy]: sortOrder,
       },
-      where,
+      where: [
+        ...where,
+        {
+          isActivated: true,
+        },
+      ],
     });
     return { data, total };
   }

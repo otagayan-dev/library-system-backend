@@ -12,7 +12,7 @@ import {
 } from "class-validator";
 
 export class CreateUserDto
-  implements Omit<User, "id" | "createdAt" | "updatedAt">
+  implements Omit<User, "id" | "createdAt" | "updatedAt" | "isActivated">
 {
   @IsNotEmpty()
   @MaxLength(50)

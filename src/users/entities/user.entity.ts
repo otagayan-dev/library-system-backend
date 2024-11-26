@@ -44,6 +44,12 @@ export class User extends TimestampedEntity {
   })
   idNumber: string;
 
+  @Column({
+    type: "boolean",
+    default: false,
+  })
+  isActivated: boolean;
+
   @BeforeInsert()
   private generateId(): void {
     this.id = crypto.randomBytes(16).toString("hex"); // Generates a 32-character hexadecimal hash
@@ -55,5 +61,10 @@ export class User extends TimestampedEntity {
     const saltOrRounds = 10;
     const hashedPassword = await bcrypt.hash(this.password, saltOrRounds);
     this.password = hashedPassword;
+  }
+
+  @BeforeInsert()
+  private async initializeActiveStatus(): Promise<void> {
+    this.isActivated = this.role === Role.User || this.role === Role.SuperAdmin;
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { UsersService } from "src/users/users.service";
 import { InvalidLoginException } from "./errors/InvalidLoginException";
 import { User } from "src/users/entities/user.entity";
@@ -6,6 +6,7 @@ import { JwtService } from "@nestjs/jwt";
 import { JwtPayload } from "./types/jwt-payload";
 import * as bcrypt from "bcrypt";
 import { Role } from "src/users/enums/role.enum";
+import { AccountNotActivatedException } from "./errors/AccountNotActivatedException";
 
 @Injectable()
 export class AuthService {
@@ -41,6 +42,7 @@ export class AuthService {
     const user = await this.usersService.findByIdNumber(idNumber);
     if (user === null) throw new InvalidLoginException();
     if (user.role === Role.User) throw new InvalidLoginException();
+    if (!user.isActivated) throw new AccountNotActivatedException();
     await this.validatePassword(password, user.password);
     this.logger.debug("AuthService:ValidateUser", {
       user,
