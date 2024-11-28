@@ -1,9 +1,16 @@
-import { BeforeInsert, Column, Entity, PrimaryColumn } from "typeorm";
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  OneToMany,
+  PrimaryColumn,
+} from "typeorm";
 import { Role } from "../enums/role.enum";
 import * as crypto from "crypto";
 import * as bcrypt from "bcrypt";
 import { Exclude } from "class-transformer";
 import { TimestampedEntity } from "src/common/entities/TimestampedEntity";
+import { BorrowTransaction } from "src/borrowing/entities/borrow-transaction.entity";
 
 @Entity()
 export class User extends TimestampedEntity {
@@ -49,6 +56,12 @@ export class User extends TimestampedEntity {
     default: false,
   })
   isActivated: boolean;
+
+  @OneToMany(() => BorrowTransaction, (transaction) => transaction.user)
+  borrowTransactions: BorrowTransaction[];
+
+  @OneToMany(() => BorrowTransaction, (transaction) => transaction.createdBy)
+  createdBorrowTransactions: BorrowTransaction[];
 
   @BeforeInsert()
   private generateId(): void {

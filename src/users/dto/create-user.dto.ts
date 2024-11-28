@@ -1,7 +1,6 @@
 import { User } from "../entities/user.entity";
 import { Role } from "../enums/role.enum";
 import {
-  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsString,
@@ -12,7 +11,16 @@ import {
 } from "class-validator";
 
 export class CreateUserDto
-  implements Omit<User, "id" | "createdAt" | "updatedAt" | "isActivated">
+  implements
+    Omit<
+      User,
+      | "id"
+      | "createdAt"
+      | "updatedAt"
+      | "isActivated"
+      | "borrowTransactions"
+      | "createdBorrowTransactions"
+    >
 {
   @IsNotEmpty()
   @MaxLength(50)

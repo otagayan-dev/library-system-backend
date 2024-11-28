@@ -33,7 +33,7 @@ export class RolesGuard implements CanActivate {
     if (request.bypassGuards) return true;
     const user = request.user; // This should be populated by JwtAuthGuard
 
-    this.logger.debug({ user, requiredRoles });
+    // this.logger.debug({ user, requiredRoles });
     if (
       !user ||
       !requiredRoles.some((role) => RoleScore[role] <= RoleScore[user.role])

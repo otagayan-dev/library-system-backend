@@ -1,8 +1,18 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { BookGenre } from "../enums/book-genre.enum";
 import { BookFormat } from "../enums/book-format.enum";
 import { User } from "src/users/entities/user.entity";
 import { TimestampedEntity } from "src/common/entities/TimestampedEntity";
+import { BorrowTransaction } from "src/borrowing/entities/borrow-transaction.entity";
+import { BorrowTransactionBook } from "src/borrowing/entities/borrow-transaction-book.entity";
 
 @Entity()
 export class Book extends TimestampedEntity {
@@ -78,6 +88,20 @@ export class Book extends TimestampedEntity {
   @Column({ type: "int" })
   stock: number;
 
+  @Column({ type: "int", default: 0 })
+  availableStock: number;
+
   @ManyToOne(() => User, { nullable: false })
   createdBy: User;
+
+  @OneToMany(
+    () => BorrowTransactionBook,
+    (transactionBook) => transactionBook.book,
+  )
+  borrowTransactionBooks: BorrowTransactionBook[];
+
+  @BeforeInsert()
+  initializeAvailableStock(): void {
+    this.availableStock = this.stock;
+  }
 }

@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { BooksModule } from "./books/books.module";
 import { SnakeNamingStrategy } from "typeorm-naming-strategies";
 import { FileModule } from './file/file.module';
+import { BorrowingModule } from './borrowing/borrowing.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FileModule } from './file/file.module';
     AuthModule,
     BooksModule,
     FileModule,
+    BorrowingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

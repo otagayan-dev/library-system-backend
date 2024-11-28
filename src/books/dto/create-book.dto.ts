@@ -25,9 +25,14 @@ export class CreateBookDto
       | "coverImageUrl"
       | "price"
       | "edition"
+      | "availableStock"
+      | "borrowTransactionBooks"
     >,
     Partial<Pick<Book, "edition" | "price">>
 {
+  initializeAvailableStock(): void {
+    throw new Error("Method not implemented.");
+  }
   @IsNotEmpty()
   @IsString()
   title: string;

@@ -16,7 +16,7 @@ export class PaginationDto {
 
   @IsOptional()
   @IsString()
-  sortBy?: string = "createdAt"; // Default field to sort by
+  sortBy?: string;
 
   @IsOptional()
   @IsString()
