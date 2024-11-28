@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateBookDto } from "./dto/create-book.dto";
 import { UpdateBookDto } from "./dto/update-book.dto";
 import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from "typeorm";
@@ -8,6 +13,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DeleteBooksDto } from "./dto/delete-books.dto";
 import { FileService } from "src/file/file.service";
 import { PaginationDto } from "src/common/dto/pagination.dto";
+import { BorrowTransactionBookStatus } from "src/borrowing/enums/borrow-transaction-status.enum";
 
 @Injectable()
 export class BooksService {
@@ -74,16 +80,27 @@ export class BooksService {
     updateBookDto: UpdateBookDto,
   ): Promise<Book> {
     const { removeImage, ...updateValues } = updateBookDto;
-    this.logger.debug("BookService.update", {
-      file,
-      updateBookDto,
-      id,
-    });
+
     const currentBook = await this.findOne(id);
+
+    const borrowedBookCount = currentBook.stock - currentBook.availableStock;
+
+    const toAddStock =
+      (updateValues.stock ?? currentBook.stock) - currentBook.stock;
+
+    const newStockValue = updateValues.stock ?? currentBook.stock;
+
+    if (borrowedBookCount > newStockValue)
+      throw new BadRequestException(
+        "The total stock cannot be reduced to less than the number of borrowed copies. Please ensure that the stock is at least equal to the borrowed quantity.",
+      );
+
     const response = await this.bookRepository.update(id, {
       ...updateValues,
       coverImageUrl: removeImage ? null : file?.path,
+      availableStock: currentBook.availableStock + toAddStock,
     });
+
     if (response.affected === 0) throw new Error("No book was updated");
     if (removeImage && currentBook.coverImageUrl !== null)
       await this.fileService.deleteFile(currentBook.coverImageUrl);

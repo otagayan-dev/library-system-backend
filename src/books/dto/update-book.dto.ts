@@ -1,6 +1,6 @@
 import { PartialType } from "@nestjs/mapped-types";
 import { CreateBookDto } from "./create-book.dto";
-import { IsBoolean } from "class-validator";
+import { IsBoolean, IsNumber, IsOptional } from "class-validator";
 import { Transform } from "class-transformer";
 
 export class UpdateBookDto extends PartialType(CreateBookDto) {
