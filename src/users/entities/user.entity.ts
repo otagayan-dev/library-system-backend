@@ -66,9 +66,9 @@ export class User extends TimestampedEntity {
 
   @OneToMany(
     () => BorrowTransactionBook,
-    (transactionBook) => transactionBook.returnedBy,
+    (transactionBook) => transactionBook.updatedBy,
   )
-  returnedBorrowTransactionBooks: BorrowTransactionBook[];
+  updatedBorrowTransactionBooks: BorrowTransactionBook[];
 
   @BeforeInsert()
   private generateId(): void {

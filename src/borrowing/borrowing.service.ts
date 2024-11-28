@@ -12,6 +12,7 @@ import {
   BorrowTransactionStatus,
 } from "./enums/borrow-transaction-status.enum";
 import { ReturnBooksDto } from "./dto/return-books.dto";
+import { ReportMissingBookDto } from "./dto/report-missing-book.dto";
 
 @Injectable()
 export class BorrowingService {
@@ -168,6 +169,56 @@ export class BorrowingService {
     };
   }
 
+  async getBorrowedAndMissingBookCountOfBorrowTransaction(
+    borrowTransactionId: number,
+  ) {
+    const bookCounts = await this.borrowTransactionBookRepository
+      .createQueryBuilder("borrowTransactionBook")
+      .leftJoin("borrowTransactionBook.borrowTransaction", "borrowTransaction")
+      .select("borrowTransactionBook.status", "status")
+      .addSelect("COUNT(borrowTransactionBook.id)", "count")
+      .where("borrowTransaction.id = :borrowTransactionId", {
+        borrowTransactionId,
+      })
+      .andWhere("borrowTransactionBook.status IN (:...statuses)", {
+        statuses: [
+          BorrowTransactionBookStatus.Missing,
+          BorrowTransactionBookStatus.Borrowed,
+        ],
+      })
+      .groupBy("borrowTransactionBook.status")
+      .getRawMany();
+
+    const borrowedCount =
+      bookCounts.find(
+        (item) => item.status === BorrowTransactionBookStatus.Borrowed,
+      )?.count || 0;
+    const missingCount =
+      bookCounts.find(
+        (item) => item.status === BorrowTransactionBookStatus.Missing,
+      )?.count || 0;
+
+    return { borrowedCount, missingCount };
+  }
+
+  async updateBorrowTransactionStatus(
+    borrowTransaction: BorrowTransaction,
+  ): Promise<void> {
+    const { borrowedCount, missingCount } =
+      await this.getBorrowedAndMissingBookCountOfBorrowTransaction(
+        borrowTransaction.id,
+      );
+
+    // Set status to closed
+    if (borrowedCount === 0) {
+      borrowTransaction.status =
+        missingCount === 0
+          ? BorrowTransactionStatus.Closed
+          : BorrowTransactionStatus.ClosedWithErrors;
+      await this.borrowTransactionRepository.save(borrowTransaction);
+    }
+  }
+
   async returnBooks(dto: ReturnBooksDto, user: User) {
     const { borrowTransactionId, borrowTransactionBookIds } = dto;
 
@@ -206,32 +257,14 @@ export class BorrowingService {
       .set({
         updatedAt: () => "CURRENT_TIMESTAMP",
         status: BorrowTransactionBookStatus.Returned,
-        returnedBy: user,
+        updatedBy: user,
       })
       .where("id IN (:...ids)", {
         ids: borrowTransactionBookIds,
       })
       .execute();
 
-    // Check if all books in the transaction is returned
-    const unreturnedBookCount = await this.borrowTransactionBookRepository
-      .createQueryBuilder("borrowTransactionBook")
-      .leftJoin("borrowTransactionBook.borrowTransaction", "borrowTransaction")
-      .where(
-        "borrowTransactionBook.status = :status AND borrowTransaction.id = :borrowTransactionId",
-        {
-          status: BorrowTransactionBookStatus.Borrowed,
-          borrowTransactionId,
-        },
-      )
-      .getCount();
-    // this.logger.debug({ unreturnedBookCount });
-
-    // Set status to closed
-    if (unreturnedBookCount === 0) {
-      borrowTransaction.status = BorrowTransactionStatus.Closed;
-      await this.borrowTransactionRepository.save(borrowTransaction);
-    }
+    await this.updateBorrowTransactionStatus(borrowTransaction);
 
     // Update available_stock of books
     await this.bookRepository
@@ -242,6 +275,54 @@ export class BorrowingService {
       })
       .where("id IN (:...ids)", {
         ids: borrowTransactionBooks.map(({ book }) => book.id),
+      })
+      .execute();
+  }
+
+  async reportMissingBook(dto: ReportMissingBookDto, user: User) {
+    const { borrowTransactionBookId } = dto;
+
+    const borrowTransactionBook = await this.borrowTransactionBookRepository
+      .createQueryBuilder("borrowTransactionBook")
+      .leftJoin("borrowTransactionBook.borrowTransaction", "borrowTransaction")
+      .addSelect(["borrowTransaction.id", "borrowTransaction.status"])
+      .leftJoin("borrowTransactionBook.book", "book")
+      .addSelect(["book.id"])
+      .where("borrowTransactionBook.id = :borrowTransactionBookId", {
+        borrowTransactionBookId,
+      })
+      .getOne();
+
+    if (!borrowTransactionBook)
+      throw new BadRequestException("Book transaction doesn't exist");
+
+    // Update borrowTransactionBookRepository status
+    await this.borrowTransactionBookRepository
+      .createQueryBuilder()
+      .update(BorrowTransactionBook)
+      .set({
+        status: BorrowTransactionBookStatus.Missing,
+        updatedBy: user,
+        updatedAt: () => "CURRENT_TIMESTAMP",
+      })
+      .where("id = :id", {
+        id: borrowTransactionBookId,
+      })
+      .execute();
+
+    await this.updateBorrowTransactionStatus(
+      borrowTransactionBook.borrowTransaction,
+    );
+
+    // Minus the current stock of the book
+    await this.bookRepository
+      .createQueryBuilder()
+      .update(Book)
+      .set({
+        stock: () => "stock - 1",
+      })
+      .where("id = :bookId", {
+        bookId: borrowTransactionBook.book.id,
       })
       .execute();
   }

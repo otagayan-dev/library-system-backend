@@ -15,6 +15,7 @@ import { BorrowTransactionDto } from "./dto/borrow-transaction.dto";
 import { BorrowingService } from "./borrowing.service";
 import { PaginationDto } from "src/common/dto/pagination.dto";
 import { ReturnBooksDto } from "./dto/return-books.dto";
+import { ReportMissingBookDto } from "./dto/report-missing-book.dto";
 
 @Roles(Role.Admin)
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,7 +34,12 @@ export class BorrowingController {
   }
 
   @Post("return")
-  returnBooksDto(@Body() dto: ReturnBooksDto, @Req() req) {
+  returnBooks(@Body() dto: ReturnBooksDto, @Req() req) {
     return this.borrowingService.returnBooks(dto, req.user);
+  }
+
+  @Post("missing")
+  reportMissingBook(@Body() dto: ReportMissingBookDto, @Req() req) {
+    return this.borrowingService.reportMissingBook(dto, req.user);
   }
 }

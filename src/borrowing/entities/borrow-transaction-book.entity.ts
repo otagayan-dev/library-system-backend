@@ -32,6 +32,6 @@ export class BorrowTransactionBook {
   })
   status: BorrowTransactionBookStatus;
 
-  @ManyToOne(() => User, (user) => user.returnedBorrowTransactionBooks)
-  returnedBy: User;
+  @ManyToOne(() => User, (user) => user.updatedBorrowTransactionBooks)
+  updatedBy: User;
 }
