@@ -6,7 +6,16 @@ import {
 } from "@nestjs/common";
 import { CreateBookDto } from "./dto/create-book.dto";
 import { UpdateBookDto } from "./dto/update-book.dto";
-import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from "typeorm";
+import {
+  FindOptionsWhere,
+  ILike,
+  In,
+  IsNull,
+  Like,
+  Not,
+  QueryFailedError,
+  Repository,
+} from "typeorm";
 import { Book } from "./entities/book.entity";
 import { User } from "src/users/entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -47,9 +56,9 @@ export class BooksService {
 
     const where: FindOptionsWhere<Book>[] = search
       ? [
-          { title: Like(`%${search}%`) },
-          { author: Like(`%${search}%`) },
-          { publisher: Like(`%${search}%`) },
+          { title: ILike(`%${search}%`) },
+          { author: ILike(`%${search}%`) },
+          { publisher: ILike(`%${search}%`) },
         ]
       : undefined;
 
@@ -113,15 +122,33 @@ export class BooksService {
 
   async removeAll(deleteBooksDto: DeleteBooksDto) {
     const { bookIds } = deleteBooksDto;
-    const books = await this.bookRepository.find({
-      where: {
-        id: In(bookIds),
-        coverImageUrl: Not(IsNull()),
-      },
-      select: ["coverImageUrl"],
-    });
-    const result = await this.bookRepository.delete(bookIds);
-    await this.fileService.deleteFiles(books.map((book) => book.coverImageUrl));
-    return result.affected ?? 0;
+    try {
+      const books = await this.bookRepository.find({
+        where: {
+          id: In(bookIds),
+          coverImageUrl: Not(IsNull()),
+        },
+        select: ["coverImageUrl"],
+      });
+
+      const result = await this.bookRepository.delete(bookIds);
+      await this.fileService.deleteFiles(
+        books.map((book) => book.coverImageUrl),
+      );
+      return result.affected ?? 0;
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        error.message.includes("violates foreign key constraint")
+      ) {
+        throw new BadRequestException(
+          "Selected books have history of transactions and can't be deleted",
+        );
+        // Add custom handling for query-related errors
+      } else {
+        console.error("Unexpected error:", error.message);
+        throw new Error(error);
+      }
+    }
   }
 }

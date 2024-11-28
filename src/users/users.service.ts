@@ -1,12 +1,20 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
-import { FindOptionsWhere, Like, Repository } from "typeorm";
+import {
+  FindOptionsWhere,
+  ILike,
+  Like,
+  QueryFailedError,
+  Repository,
+} from "typeorm";
 import { User } from "./entities/user.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PaginationDto } from "src/common/dto/pagination.dto";
@@ -15,6 +23,8 @@ import { DeleteUsersDto } from "./dto/delete-users.dto";
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -57,20 +67,9 @@ export class UsersService {
     data: User[];
     total: number;
   }> {
-    const { page, limit, sortOrder, sortBy, search } = dto;
-    const where: FindOptionsWhere<User>[] | undefined = search
-      ? [
-          {
-            firstName: Like(`%${search}%`),
-          },
-          {
-            lastName: Like(`%${search}%`),
-          },
-          {
-            idNumber: Like(`%${search}%`),
-          },
-        ]
-      : [];
+    const { page, limit, sortOrder, sortBy, search = "" } = dto;
+
+    this.logger.debug("FindAll", { dto });
     const [data, total] = await this.userRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
@@ -78,9 +77,17 @@ export class UsersService {
         [sortBy]: sortOrder,
       },
       where: [
-        ...where,
         {
           isActivated: true,
+          firstName: ILike(`%${search}%`),
+        },
+        {
+          isActivated: true,
+          lastName: ILike(`%${search}%`),
+        },
+        {
+          isActivated: true,
+          idNumber: ILike(`%${search}%`),
         },
       ],
     });
@@ -114,14 +121,29 @@ export class UsersService {
     const { userIds } = deleteUsersDto;
 
     //Delete only users that have user role
-    const result = await this.userRepository
-      .createQueryBuilder()
-      .delete()
-      .from(User)
-      .where("id IN (:...userIds)", { userIds })
-      .andWhere("role = :role", { role: "user" })
-      .execute();
+    try {
+      const result = await this.userRepository
+        .createQueryBuilder()
+        .delete()
+        .from(User)
+        .where("id IN (:...userIds)", { userIds })
+        .andWhere("role = :role", { role: "user" })
+        .execute();
 
-    return result.affected ?? 0;
+      return result.affected ?? 0;
+    } catch (error: any) {
+      if (
+        error instanceof QueryFailedError &&
+        error.message.includes("violates foreign key constraint")
+      ) {
+        throw new BadRequestException(
+          "Selected users have history of transactions and can't be deleted",
+        );
+        // Add custom handling for query-related errors
+      } else {
+        console.error("Unexpected error:", error.message);
+        throw new Error(error);
+      }
+    }
   }
 }

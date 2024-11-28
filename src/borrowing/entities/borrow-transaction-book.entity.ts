@@ -12,10 +12,15 @@ export class BorrowTransactionBook {
   @ManyToOne(
     () => BorrowTransaction,
     (borrowTransaction) => borrowTransaction.borrowTransactionBooks,
+    {
+      onDelete: "CASCADE",
+    },
   )
   borrowTransaction: BorrowTransaction;
 
-  @ManyToOne(() => Book, (book) => book.borrowTransactionBooks)
+  @ManyToOne(() => Book, (book) => book.borrowTransactionBooks, {
+    onDelete: "RESTRICT",
+  })
   book: Book;
 
   @Column({
@@ -32,6 +37,8 @@ export class BorrowTransactionBook {
   })
   status: BorrowTransactionBookStatus;
 
-  @ManyToOne(() => User, (user) => user.updatedBorrowTransactionBooks)
+  @ManyToOne(() => User, (user) => user.updatedBorrowTransactionBooks, {
+    onDelete: "SET NULL",
+  })
   updatedBy: User;
 }

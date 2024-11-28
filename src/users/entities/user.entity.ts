@@ -58,7 +58,9 @@ export class User extends TimestampedEntity {
   })
   isActivated: boolean;
 
-  @OneToMany(() => BorrowTransaction, (transaction) => transaction.user)
+  @OneToMany(() => BorrowTransaction, (transaction) => transaction.user, {
+    cascade: false,
+  })
   borrowTransactions: BorrowTransaction[];
 
   @OneToMany(() => BorrowTransaction, (transaction) => transaction.createdBy)

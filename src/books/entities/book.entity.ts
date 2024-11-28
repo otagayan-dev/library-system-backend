@@ -97,6 +97,9 @@ export class Book extends TimestampedEntity {
   @OneToMany(
     () => BorrowTransactionBook,
     (transactionBook) => transactionBook.book,
+    {
+      cascade: false,
+    },
   )
   borrowTransactionBooks: BorrowTransactionBook[];
 

@@ -16,12 +16,15 @@ export class BorrowTransaction {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.borrowTransactions)
+  @ManyToOne(() => User, (user) => user.borrowTransactions, {
+    onDelete: "RESTRICT",
+  })
   user: User;
 
   @OneToMany(
     () => BorrowTransactionBook,
     (borrowTransactionBook) => borrowTransactionBook.borrowTransaction,
+    { cascade: true },
   )
   borrowTransactionBooks: BorrowTransactionBook[];
 
@@ -35,6 +38,8 @@ export class BorrowTransaction {
   })
   status: BorrowTransactionStatus;
 
-  @ManyToOne(() => User, (user) => user.createdBorrowTransactions)
+  @ManyToOne(() => User, (user) => user.createdBorrowTransactions, {
+    onDelete: "SET NULL",
+  })
   createdBy: User;
 }
