@@ -7,7 +7,11 @@ import { Book } from "src/books/entities/book.entity";
 import { BorrowTransaction } from "./entities/borrow-transaction.entity";
 import { PaginationDto } from "src/common/dto/pagination.dto";
 import { BorrowTransactionBook } from "./entities/borrow-transaction-book.entity";
-import { BorrowTransactionStatus } from "./enums/borrow-transaction-status.enum";
+import {
+  BorrowTransactionBookStatus,
+  BorrowTransactionStatus,
+} from "./enums/borrow-transaction-status.enum";
+import { ReturnBooksDto } from "./dto/return-books.dto";
 
 @Injectable()
 export class BorrowingService {
@@ -158,14 +162,87 @@ export class BorrowingService {
       .limit(limit)
       .getManyAndCount();
 
-    this.logger.debug({
-      data,
-      total,
-    });
-
     return {
       data,
       total,
     };
+  }
+
+  async returnBooks(dto: ReturnBooksDto, user: User) {
+    const { borrowTransactionId, borrowTransactionBookIds } = dto;
+
+    const borrowTransaction = await this.borrowTransactionRepository.findOne({
+      where: {
+        id: borrowTransactionId,
+      },
+    });
+
+    if (!borrowTransaction)
+      throw new BadRequestException("Transaction doesn't exist");
+
+    // Check if all borrowTransactionBooks are valid
+    const borrowTransactionBooks = await this.borrowTransactionBookRepository
+      .createQueryBuilder("borrowTransactionBook")
+      .leftJoin("borrowTransactionBook.book", "book")
+      .addSelect(["book.id"])
+      .where(
+        "borrowTransactionBook.id IN (:...ids) AND borrowTransactionBook.status = :status",
+        {
+          status: BorrowTransactionBookStatus.Borrowed,
+          ids: borrowTransactionBookIds,
+        },
+      )
+      .getMany();
+
+    if (borrowTransactionBooks.length !== borrowTransactionBookIds.length)
+      throw new BadRequestException(
+        "Some transaction books doesn't exist or is already returned",
+      );
+
+    // Update return data of borrowTransactionBook
+    await this.borrowTransactionBookRepository
+      .createQueryBuilder()
+      .update(BorrowTransactionBook)
+      .set({
+        updatedAt: () => "CURRENT_TIMESTAMP",
+        status: BorrowTransactionBookStatus.Returned,
+        returnedBy: user,
+      })
+      .where("id IN (:...ids)", {
+        ids: borrowTransactionBookIds,
+      })
+      .execute();
+
+    // Check if all books in the transaction is returned
+    const unreturnedBookCount = await this.borrowTransactionBookRepository
+      .createQueryBuilder("borrowTransactionBook")
+      .leftJoin("borrowTransactionBook.borrowTransaction", "borrowTransaction")
+      .where(
+        "borrowTransactionBook.status = :status AND borrowTransaction.id = :borrowTransactionId",
+        {
+          status: BorrowTransactionBookStatus.Borrowed,
+          borrowTransactionId,
+        },
+      )
+      .getCount();
+    // this.logger.debug({ unreturnedBookCount });
+
+    // Set status to closed
+    if (unreturnedBookCount === 0) {
+      borrowTransaction.status = BorrowTransactionStatus.Closed;
+      await this.borrowTransactionRepository.save(borrowTransaction);
+    }
+
+    // Update available_stock of books
+    await this.bookRepository
+      .createQueryBuilder()
+      .update(Book)
+      .set({
+        availableStock: () => "available_stock + 1",
+      })
+      .where("id IN (:...ids)", {
+        ids: borrowTransactionBooks.map(({ book }) => book.id),
+      })
+      .execute();
   }
 }

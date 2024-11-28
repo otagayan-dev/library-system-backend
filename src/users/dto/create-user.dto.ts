@@ -20,6 +20,7 @@ export class CreateUserDto
       | "isActivated"
       | "borrowTransactions"
       | "createdBorrowTransactions"
+      | "returnedBorrowTransactionBooks"
     >
 {
   @IsNotEmpty()

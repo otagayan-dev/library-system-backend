@@ -14,6 +14,7 @@ import { Role } from "src/users/enums/role.enum";
 import { BorrowTransactionDto } from "./dto/borrow-transaction.dto";
 import { BorrowingService } from "./borrowing.service";
 import { PaginationDto } from "src/common/dto/pagination.dto";
+import { ReturnBooksDto } from "./dto/return-books.dto";
 
 @Roles(Role.Admin)
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,5 +30,10 @@ export class BorrowingController {
   @Get("open")
   getOpenTransactions(@Query() dto: PaginationDto) {
     return this.borrowingService.getOpenTransactions(dto);
+  }
+
+  @Post("return")
+  returnBooksDto(@Body() dto: ReturnBooksDto, @Req() req) {
+    return this.borrowingService.returnBooks(dto, req.user);
   }
 }

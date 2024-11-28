@@ -11,6 +11,7 @@ import * as bcrypt from "bcrypt";
 import { Exclude } from "class-transformer";
 import { TimestampedEntity } from "src/common/entities/TimestampedEntity";
 import { BorrowTransaction } from "src/borrowing/entities/borrow-transaction.entity";
+import { BorrowTransactionBook } from "src/borrowing/entities/borrow-transaction-book.entity";
 
 @Entity()
 export class User extends TimestampedEntity {
@@ -62,6 +63,12 @@ export class User extends TimestampedEntity {
 
   @OneToMany(() => BorrowTransaction, (transaction) => transaction.createdBy)
   createdBorrowTransactions: BorrowTransaction[];
+
+  @OneToMany(
+    () => BorrowTransactionBook,
+    (transactionBook) => transactionBook.returnedBy,
+  )
+  returnedBorrowTransactionBooks: BorrowTransactionBook[];
 
   @BeforeInsert()
   private generateId(): void {

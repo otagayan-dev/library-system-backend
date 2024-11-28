@@ -1,6 +1,8 @@
 import { Book } from "src/books/entities/book.entity";
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { BorrowTransaction } from "./borrow-transaction.entity";
+import { User } from "src/users/entities/user.entity";
+import { BorrowTransactionBookStatus } from "../enums/borrow-transaction-status.enum";
 
 @Entity()
 export class BorrowTransactionBook {
@@ -21,5 +23,15 @@ export class BorrowTransactionBook {
     nullable: true,
     default: null,
   })
-  returnedAt: Date | null;
+  updatedAt: Date | null;
+
+  @Column({
+    type: "enum",
+    enum: BorrowTransactionBookStatus,
+    default: BorrowTransactionBookStatus.Borrowed,
+  })
+  status: BorrowTransactionBookStatus;
+
+  @ManyToOne(() => User, (user) => user.returnedBorrowTransactionBooks)
+  returnedBy: User;
 }
