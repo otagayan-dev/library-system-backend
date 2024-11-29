@@ -81,6 +81,44 @@ export class BorrowingService {
     };
   }
 
+  private async validateReturnBooksDto(dto: ReturnBooksDto): Promise<{
+    borrowTransaction: BorrowTransaction;
+  }> {
+    const { borrowTransactionBookIds, borrowTransactionId } = dto;
+
+    const borrowTransaction = await this.borrowTransactionRepository
+      .createQueryBuilder("borrowTransaction")
+      .leftJoinAndSelect(
+        "borrowTransaction.borrowTransactionBooks",
+        "borrowTransactionBook",
+        "borrowTransactionBook.id IN (:...borrowTransactionBookIds) AND borrowTransactionBook.status = :status",
+        {
+          borrowTransactionBookIds,
+          status: BorrowTransactionBookStatus.Borrowed,
+        },
+      )
+      .leftJoin("borrowTransactionBook.book", "book")
+      .addSelect(["book.id", "book.title"])
+      .where("borrowTransaction.id = :borrowTransactionId", {
+        borrowTransactionId,
+      })
+      .getOne();
+
+    if (!borrowTransaction)
+      throw new BadRequestException("Transaction doesn't exist");
+
+    this.logger.debug("validateReturnBooksDto", { borrowTransaction });
+    if (
+      borrowTransaction.borrowTransactionBooks.length !==
+      borrowTransactionBookIds.length
+    )
+      throw new BadRequestException(
+        "Some transaction books doesn't exist or is already returned",
+      );
+
+    return { borrowTransaction };
+  }
+
   async borrowBooks(dto: BorrowTransactionDto, createdBy: User) {
     const { userToBorrow, booksToBorrow } =
       await this.validateBorrowTransactionDto(dto);
@@ -116,9 +154,6 @@ export class BorrowingService {
 
   async getOpenTransactions(paginationDto: PaginationDto) {
     const { limit, page, search, sortBy, sortOrder } = paginationDto;
-    this.logger.debug({
-      paginationDto,
-    });
 
     const queryBuilder =
       this.borrowTransactionRepository.createQueryBuilder("borrowTransaction");
@@ -220,35 +255,9 @@ export class BorrowingService {
   }
 
   async returnBooks(dto: ReturnBooksDto, user: User) {
-    const { borrowTransactionId, borrowTransactionBookIds } = dto;
+    const { borrowTransactionBookIds } = dto;
 
-    const borrowTransaction = await this.borrowTransactionRepository.findOne({
-      where: {
-        id: borrowTransactionId,
-      },
-    });
-
-    if (!borrowTransaction)
-      throw new BadRequestException("Transaction doesn't exist");
-
-    // Check if all borrowTransactionBooks are valid
-    const borrowTransactionBooks = await this.borrowTransactionBookRepository
-      .createQueryBuilder("borrowTransactionBook")
-      .leftJoin("borrowTransactionBook.book", "book")
-      .addSelect(["book.id"])
-      .where(
-        "borrowTransactionBook.id IN (:...ids) AND borrowTransactionBook.status = :status",
-        {
-          status: BorrowTransactionBookStatus.Borrowed,
-          ids: borrowTransactionBookIds,
-        },
-      )
-      .getMany();
-
-    if (borrowTransactionBooks.length !== borrowTransactionBookIds.length)
-      throw new BadRequestException(
-        "Some transaction books doesn't exist or is already returned",
-      );
+    const { borrowTransaction } = await this.validateReturnBooksDto(dto);
 
     // Update return data of borrowTransactionBook
     await this.borrowTransactionBookRepository
@@ -274,7 +283,9 @@ export class BorrowingService {
         availableStock: () => "available_stock + 1",
       })
       .where("id IN (:...ids)", {
-        ids: borrowTransactionBooks.map(({ book }) => book.id),
+        ids: borrowTransaction.borrowTransactionBooks.map(
+          ({ book }) => book.id,
+        ),
       })
       .execute();
   }
