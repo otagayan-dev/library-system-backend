@@ -12,16 +12,7 @@ import {
 
 export class CreateUserDto
   implements
-    Omit<
-      User,
-      | "id"
-      | "createdAt"
-      | "updatedAt"
-      | "isActivated"
-      | "borrowTransactions"
-      | "createdBorrowTransactions"
-      | "updatedBorrowTransactionBooks"
-    >
+    Pick<User, "lastName" | "firstName" | "role" | "password" | "idNumber">
 {
   @IsNotEmpty()
   @MaxLength(50)

@@ -13,6 +13,9 @@ import {
 } from "./enums/borrow-transaction-status.enum";
 import { ReturnBooksDto } from "./dto/return-books.dto";
 import { ReportMissingBookDto } from "./dto/report-missing-book.dto";
+import { ConfigService } from "@nestjs/config";
+import { PenaltiesService } from "src/penalties/penalties.service";
+import { Penalty } from "src/penalties/entities/penalty.entity";
 
 @Injectable()
 export class BorrowingService {
@@ -26,6 +29,8 @@ export class BorrowingService {
     private readonly borrowTransactionRepository: Repository<BorrowTransaction>,
     @InjectRepository(BorrowTransactionBook)
     private readonly borrowTransactionBookRepository: Repository<BorrowTransactionBook>,
+    private readonly configService: ConfigService,
+    private readonly penaltiesService: PenaltiesService,
   ) {}
 
   private async validateBorrowTransactionDto(
@@ -88,6 +93,7 @@ export class BorrowingService {
 
     const borrowTransaction = await this.borrowTransactionRepository
       .createQueryBuilder("borrowTransaction")
+      .leftJoinAndSelect("borrowTransaction.user", "user")
       .leftJoinAndSelect(
         "borrowTransaction.borrowTransactionBooks",
         "borrowTransactionBook",
@@ -186,7 +192,7 @@ export class BorrowingService {
         "book.edition",
         "book.coverImageUrl",
       ])
-      .orderBy(`user.${sortBy}`, sortOrder)
+      .orderBy(sortBy, sortOrder)
       .where(
         "(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.idNumber ILIKE :search) AND borrowTransaction.status = :status",
         {
@@ -254,10 +260,33 @@ export class BorrowingService {
     }
   }
 
-  async returnBooks(dto: ReturnBooksDto, user: User) {
+  async returnBooks(
+    dto: ReturnBooksDto,
+    user: User,
+  ): Promise<{
+    penalties: Penalty[];
+  }> {
     const { borrowTransactionBookIds } = dto;
 
     const { borrowTransaction } = await this.validateReturnBooksDto(dto);
+
+    /**
+     * @todo
+     * Check for overdued books and create penalty
+     */
+    const overdueDays =
+      this.penaltiesService.getBorrowTransactionOverdueDays(borrowTransaction);
+
+    this.logger.debug({ overdueDays });
+
+    let penalties: Penalty[] = [];
+    if (overdueDays > 0) {
+      penalties =
+        await this.penaltiesService.createOverdueBorrowTransactionBookPenalties(
+          borrowTransaction,
+          overdueDays,
+        );
+    }
 
     // Update return data of borrowTransactionBook
     await this.borrowTransactionBookRepository
@@ -288,6 +317,10 @@ export class BorrowingService {
         ),
       })
       .execute();
+
+    return {
+      penalties,
+    };
   }
 
   async reportMissingBook(dto: ReportMissingBookDto, user: User) {

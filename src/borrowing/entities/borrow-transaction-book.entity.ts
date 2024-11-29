@@ -1,8 +1,16 @@
 import { Book } from "src/books/entities/book.entity";
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { BorrowTransaction } from "./borrow-transaction.entity";
 import { User } from "src/users/entities/user.entity";
 import { BorrowTransactionBookStatus } from "../enums/borrow-transaction-status.enum";
+import { Penalty } from "src/penalties/entities/penalty.entity";
 
 @Entity()
 export class BorrowTransactionBook {
@@ -41,4 +49,7 @@ export class BorrowTransactionBook {
     onDelete: "SET NULL",
   })
   updatedBy: User;
+
+  @OneToOne(() => Penalty, (penalty) => penalty.borrowTransactionBook)
+  penalty: Penalty;
 }

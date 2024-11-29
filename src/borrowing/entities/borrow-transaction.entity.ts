@@ -1,9 +1,7 @@
-import { Book } from "src/books/entities/book.entity";
 import { User } from "src/users/entities/user.entity";
 import {
   Column,
   Entity,
-  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,

@@ -8,6 +8,7 @@ import { BorrowTransaction } from "./entities/borrow-transaction.entity";
 import { BorrowTransactionBook } from "./entities/borrow-transaction-book.entity";
 import { User } from "src/users/entities/user.entity";
 import { Book } from "src/books/entities/book.entity";
+import { PenaltiesModule } from "src/penalties/penalties.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Book } from "src/books/entities/book.entity";
     ]),
     UsersModule,
     BooksModule,
+    PenaltiesModule,
   ],
   controllers: [BorrowingController],
   providers: [BorrowingService],

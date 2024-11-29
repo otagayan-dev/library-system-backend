@@ -2,6 +2,7 @@ import {
   BeforeInsert,
   Column,
   Entity,
+  ManyToOne,
   OneToMany,
   PrimaryColumn,
 } from "typeorm";
@@ -12,6 +13,7 @@ import { Exclude } from "class-transformer";
 import { TimestampedEntity } from "src/common/entities/TimestampedEntity";
 import { BorrowTransaction } from "src/borrowing/entities/borrow-transaction.entity";
 import { BorrowTransactionBook } from "src/borrowing/entities/borrow-transaction-book.entity";
+import { Penalty } from "src/penalties/entities/penalty.entity";
 
 @Entity()
 export class User extends TimestampedEntity {
@@ -71,6 +73,12 @@ export class User extends TimestampedEntity {
     (transactionBook) => transactionBook.updatedBy,
   )
   updatedBorrowTransactionBooks: BorrowTransactionBook[];
+
+  @OneToMany(() => Penalty, (penalty) => penalty.resolvedBy, { cascade: false })
+  resolvedPenalties: Penalty[];
+
+  @OneToMany(() => Penalty, (penalty) => penalty.user)
+  penalties: Penalty[];
 
   @BeforeInsert()
   private generateId(): void {
