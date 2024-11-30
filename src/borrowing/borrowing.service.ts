@@ -332,6 +332,8 @@ export class BorrowingService {
       .addSelect(["borrowTransaction.id", "borrowTransaction.status"])
       .leftJoin("borrowTransactionBook.book", "book")
       .addSelect(["book.id"])
+      .addSelect(["borrowTransaction.id"])
+      .leftJoinAndSelect("borrowTransaction.user", "user")
       .where("borrowTransactionBook.id = :borrowTransactionBookId", {
         borrowTransactionBookId,
       })
@@ -369,5 +371,13 @@ export class BorrowingService {
         bookId: borrowTransactionBook.book.id,
       })
       .execute();
+
+    /**
+     * @todo Create penalties
+     */
+    await this.penaltiesService.createMissingBookPenalty(
+      borrowTransactionBook,
+      dto.amountDue,
+    );
   }
 }

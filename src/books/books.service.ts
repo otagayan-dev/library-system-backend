@@ -22,7 +22,6 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DeleteBooksDto } from "./dto/delete-books.dto";
 import { FileService } from "src/file/file.service";
 import { PaginationDto } from "src/common/dto/pagination.dto";
-import { BorrowTransactionBookStatus } from "src/borrowing/enums/borrow-transaction-status.enum";
 
 @Injectable()
 export class BooksService {
