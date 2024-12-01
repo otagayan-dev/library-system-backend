@@ -152,7 +152,7 @@ export class PenaltiesService {
       )
       .orderBy(sortBy, sortOrder)
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit * page);
 
     const [data, total] = await query.getManyAndCount();
 

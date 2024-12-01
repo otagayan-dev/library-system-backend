@@ -23,6 +23,9 @@ export class Penalty extends TimestampedEntity {
   @OneToOne(
     () => BorrowTransactionBook,
     (borrowTransactionBook) => borrowTransactionBook.penalty,
+    {
+      onDelete: "RESTRICT",
+    },
   )
   borrowTransactionBook: BorrowTransactionBook;
 
