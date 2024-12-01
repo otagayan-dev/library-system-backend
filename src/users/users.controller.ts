@@ -20,6 +20,7 @@ import { RolesGuard } from "src/auth/roles.guard";
 import { PaginationDto } from "src/common/dto/pagination.dto";
 import { SecretKeyGuard } from "src/auth/secret-key.guard";
 import { DeleteUsersDto } from "./dto/delete-users.dto";
+import { ActivateUserDto } from "./dto/activate-user.dto";
 
 @UseGuards(SecretKeyGuard, JwtAuthGuard, RolesGuard)
 @Controller("users")
@@ -46,11 +47,24 @@ export class UsersController {
     return this.usersService.findAll(dto);
   }
 
+  @Roles(Role.SuperAdmin)
+  @Get("unactivated")
+  getUnActivatedUsers(@Query() dto: PaginationDto) {
+    return this.usersService.getUnActivatedUsers(dto);
+  }
+
+  @Roles(Role.SuperAdmin)
+  @Post("activate")
+  activateUser(@Body() dto: ActivateUserDto) {
+    return this.usersService.activateUser(dto);
+  }
+
   @Roles(Role.Admin)
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.usersService.findOne(id);
   }
+
   @Roles(Role.Admin)
   @Patch(":id")
   update(
@@ -60,6 +74,13 @@ export class UsersController {
   ) {
     return this.usersService.update(id, updateUserDto, req.user);
   }
+
+  @Roles(Role.SuperAdmin)
+  @Delete("admins")
+  removeAdminUser(@Body() dto: DeleteUsersDto) {
+    return this.usersService.removeAllAdmins(dto);
+  }
+
   @Roles(Role.Admin)
   @Delete()
   removeAll(@Body() deleteUsersDto: DeleteUsersDto) {

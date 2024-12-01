@@ -20,6 +20,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { PaginationDto } from "src/common/dto/pagination.dto";
 import { Role } from "./enums/role.enum";
 import { DeleteUsersDto } from "./dto/delete-users.dto";
+import { PaginationResponse } from "src/common/types/pagination-response";
+import { ActivateUserDto } from "./dto/activate-user.dto";
 
 @Injectable()
 export class UsersService {
@@ -120,6 +122,7 @@ export class UsersService {
   async removeAll(deleteUsersDto: DeleteUsersDto): Promise<number> {
     const { userIds } = deleteUsersDto;
 
+    this.logger.debug("removeAll", { userIds });
     //Delete only users that have user role
     try {
       const result = await this.userRepository
@@ -127,7 +130,7 @@ export class UsersService {
         .delete()
         .from(User)
         .where("id IN (:...userIds)", { userIds })
-        .andWhere("role = :role", { role: "user" })
+        .andWhere("role = :role", { role: Role.User })
         .execute();
 
       return result.affected ?? 0;
@@ -145,5 +148,78 @@ export class UsersService {
         throw new Error(error);
       }
     }
+  }
+
+  async removeAllAdmins(deleteUsersDto: DeleteUsersDto): Promise<number> {
+    const { userIds } = deleteUsersDto;
+
+    this.logger.debug("removeAllAdmins", { userIds });
+    //Delete only users that have user role
+    try {
+      const result = await this.userRepository
+        .createQueryBuilder()
+        .delete()
+        .from(User)
+        .where("id IN (:...userIds)", { userIds })
+        .andWhere("role = :role", { role: Role.Admin })
+        .execute();
+
+      return result.affected ?? 0;
+    } catch (error: any) {
+      if (
+        error instanceof QueryFailedError &&
+        error.message.includes("violates foreign key constraint")
+      ) {
+        throw new BadRequestException(
+          "Selected users have history of transactions and can't be deleted",
+        );
+        // Add custom handling for query-related errors
+      } else {
+        console.error("Unexpected error:", error.message);
+        throw new Error(error);
+      }
+    }
+  }
+
+  async getUnActivatedUsers(
+    dto: PaginationDto,
+  ): Promise<PaginationResponse<User>> {
+    const { page, limit, search, sortBy, sortOrder } = dto;
+
+    const [data, total] = await this.userRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: {
+        [sortBy]: sortOrder,
+      },
+      where: [
+        {
+          isActivated: false,
+          firstName: ILike(`%${search}%`),
+        },
+        {
+          isActivated: false,
+          lastName: ILike(`%${search}%`),
+        },
+        {
+          isActivated: false,
+          idNumber: ILike(`%${search}%`),
+        },
+      ],
+    });
+
+    return {
+      data,
+      total,
+    };
+  }
+
+  async activateUser(dto: ActivateUserDto): Promise<void> {
+    const user = await this.userRepository.findOneBy({
+      id: dto.userId,
+    });
+    if (!user) throw new NotFoundException("User not found");
+    user.isActivated = true;
+    await this.userRepository.save(user);
   }
 }
