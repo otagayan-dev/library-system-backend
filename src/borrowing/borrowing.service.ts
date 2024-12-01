@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { BorrowTransactionDto } from "./dto/borrow-transaction.dto";
 import { User } from "src/users/entities/user.entity";
 import { In, Repository } from "typeorm";
@@ -13,7 +18,6 @@ import {
 } from "./enums/borrow-transaction-status.enum";
 import { ReturnBooksDto } from "./dto/return-books.dto";
 import { ReportMissingBookDto } from "./dto/report-missing-book.dto";
-import { ConfigService } from "@nestjs/config";
 import { PenaltiesService } from "src/penalties/penalties.service";
 import { Penalty } from "src/penalties/entities/penalty.entity";
 
@@ -29,7 +33,6 @@ export class BorrowingService {
     private readonly borrowTransactionRepository: Repository<BorrowTransaction>,
     @InjectRepository(BorrowTransactionBook)
     private readonly borrowTransactionBookRepository: Repository<BorrowTransactionBook>,
-    private readonly configService: ConfigService,
     private readonly penaltiesService: PenaltiesService,
   ) {}
 
@@ -181,18 +184,6 @@ export class BorrowingService {
         "createdBy.lastName",
         "createdBy.role",
       ])
-      .leftJoinAndSelect(
-        "borrowTransaction.borrowTransactionBooks",
-        "borrowTransactionBook",
-      )
-      .leftJoin("borrowTransactionBook.book", "book")
-      .addSelect([
-        "book.id",
-        "book.title",
-        "book.edition",
-        "book.coverImageUrl",
-      ])
-      .orderBy(sortBy, sortOrder)
       .where(
         "(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.idNumber ILIKE :search) AND borrowTransaction.status = :status",
         {
@@ -200,14 +191,55 @@ export class BorrowingService {
           status: BorrowTransactionStatus.Open,
         },
       )
+      .orderBy(sortBy, sortOrder)
+      .limit(limit * page)
       .skip((page - 1) * limit)
-      .limit(limit)
       .getManyAndCount();
+    this.logger.debug("getOpenTransactions", {
+      dataCount: data.length,
+      total,
+      limit,
+      skip: (page - 1) * limit,
+    });
 
     return {
       data,
       total,
     };
+  }
+
+  async getBorrowTransactionBooks(
+    borrowTransactionId: BorrowTransaction["id"],
+  ): Promise<BorrowTransactionBook[]> {
+    this.logger.debug("getBorrowTransactionBooks", { borrowTransactionId });
+    const count = await this.borrowTransactionRepository.countBy({
+      id: borrowTransactionId,
+    });
+    if (count === 0)
+      throw new NotFoundException("Borrow transaction doesn't exist");
+
+    return this.borrowTransactionBookRepository
+      .createQueryBuilder("borrowTransactionBook")
+      .leftJoin("borrowTransactionBook.book", "book")
+      .addSelect([
+        "book.id",
+        "book.title",
+        "book.edition",
+        "book.coverImageUrl",
+      ])
+      .leftJoin("borrowTransactionBook.updatedBy", "updatedBy")
+      .addSelect([
+        "updatedBy.idNumber",
+        "updatedBy.firstName",
+        "updatedBy.lastName",
+      ])
+      .where(
+        "borrowTransactionBook.borrow_transaction_id = :borrowTransactionId",
+        {
+          borrowTransactionId,
+        },
+      )
+      .getMany();
   }
 
   async getBorrowedAndMissingBookCountOfBorrowTransaction(
@@ -244,20 +276,35 @@ export class BorrowingService {
 
   async updateBorrowTransactionStatus(
     borrowTransaction: BorrowTransaction,
-  ): Promise<void> {
+  ): Promise<{
+    isBorrowTransactionCompleted: boolean;
+  }> {
     const { borrowedCount, missingCount } =
       await this.getBorrowedAndMissingBookCountOfBorrowTransaction(
         borrowTransaction.id,
       );
-
     // Set status to closed
     if (borrowedCount === 0) {
       borrowTransaction.status =
         missingCount === 0
           ? BorrowTransactionStatus.Closed
           : BorrowTransactionStatus.ClosedWithErrors;
-      await this.borrowTransactionRepository.save(borrowTransaction);
+      await this.borrowTransactionRepository
+        .createQueryBuilder()
+        .update(BorrowTransaction)
+        .set({
+          status: borrowTransaction.status,
+        })
+        .where("id = :id", {
+          id: borrowTransaction.id,
+        })
+        .execute();
     }
+
+    return {
+      isBorrowTransactionCompleted:
+        borrowTransaction.status === BorrowTransactionStatus.Closed,
+    };
   }
 
   async returnBooks(
@@ -265,6 +312,7 @@ export class BorrowingService {
     user: User,
   ): Promise<{
     penalties: Penalty[];
+    isBorrowTransactionCompleted: boolean;
   }> {
     const { borrowTransactionBookIds } = dto;
 
@@ -302,7 +350,8 @@ export class BorrowingService {
       })
       .execute();
 
-    await this.updateBorrowTransactionStatus(borrowTransaction);
+    const { isBorrowTransactionCompleted } =
+      await this.updateBorrowTransactionStatus(borrowTransaction);
 
     // Update available_stock of books
     await this.bookRepository
@@ -320,6 +369,7 @@ export class BorrowingService {
 
     return {
       penalties,
+      isBorrowTransactionCompleted,
     };
   }
 

@@ -50,6 +50,8 @@ export class BorrowTransactionBook {
   })
   updatedBy: User;
 
-  @OneToOne(() => Penalty, (penalty) => penalty.borrowTransactionBook)
+  @OneToOne(() => Penalty, (penalty) => penalty.borrowTransactionBook, {
+    cascade: true,
+  })
   penalty: Penalty;
 }

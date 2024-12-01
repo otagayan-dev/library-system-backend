@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -27,6 +28,13 @@ export class BorrowingController {
   @Post()
   borrowBooks(@Body() dto: BorrowTransactionDto, @Req() req) {
     return this.borrowingService.borrowBooks(dto, req.user);
+  }
+
+  @Get(":borrowTransactionId/books")
+  getBorrowTransactionBooks(
+    @Param("borrowTransactionId") borrowTransactionId: number,
+  ) {
+    return this.borrowingService.getBorrowTransactionBooks(borrowTransactionId);
   }
 
   @Get("open")
