@@ -11,6 +11,7 @@ import { User } from "src/users/entities/user.entity";
 import { ReportMissingBookDto } from "src/borrowing/dto/report-missing-book.dto";
 import { BorrowTransactionBook } from "src/borrowing/entities/borrow-transaction-book.entity";
 import { ResolvePenaltyDto } from "./dto/resolve-penalty.dto";
+import { PaginationResponse } from "src/common/types/pagination-response";
 
 @Injectable()
 export class PenaltiesService {
@@ -102,17 +103,12 @@ export class PenaltiesService {
     await this.penaltyRepository.save(penalty);
   }
 
-  async getAllUnresolvedPenalties(dto: PaginationDto): Promise<{
-    data: Penalty[];
-    total: number;
-  }> {
+  async getAllUnresolvedPenalties(
+    dto: PaginationDto,
+  ): Promise<PaginationResponse<Penalty>> {
     const { page, limit, sortBy, sortOrder, search } = dto;
 
     this.logger.debug("getAllUnresolvedPenalties", { dto });
-
-    await new Promise((resolve) => {
-      setTimeout(resolve, 1000);
-    });
 
     const query = this.penaltyRepository
       .createQueryBuilder("penalty")

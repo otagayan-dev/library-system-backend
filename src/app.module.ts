@@ -7,9 +7,10 @@ import { ConfigModule } from "@nestjs/config";
 import { AuthModule } from "./auth/auth.module";
 import { BooksModule } from "./books/books.module";
 import { SnakeNamingStrategy } from "typeorm-naming-strategies";
-import { FileModule } from './file/file.module';
-import { BorrowingModule } from './borrowing/borrowing.module';
-import { PenaltiesModule } from './penalties/penalties.module';
+import { FileModule } from "./file/file.module";
+import { BorrowingModule } from "./borrowing/borrowing.module";
+import { PenaltiesModule } from "./penalties/penalties.module";
+import { HistoryModule } from "./history/history.module";
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PenaltiesModule } from './penalties/penalties.module';
     FileModule,
     BorrowingModule,
     PenaltiesModule,
+    HistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
