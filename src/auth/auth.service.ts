@@ -51,8 +51,8 @@ export class AuthService {
   }
 
   async login(user: User): Promise<{
-    access_token: string;
-    refresh_token: string;
+    accessToken: string;
+    refreshToken: string;
   }> {
     const { id, idNumber, role } = user;
     const payload: JwtPayload = {
@@ -63,8 +63,8 @@ export class AuthService {
     this.logger.debug("AuthService:Login", { user, payload });
 
     return {
-      access_token: this.jwtService.sign(payload),
-      refresh_token: this.jwtService.sign(payload, {
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: this.jwtService.sign(payload, {
         expiresIn: "7d",
       }),
     };
