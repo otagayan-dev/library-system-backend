@@ -22,7 +22,7 @@ export class RefreshTokenGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    const refreshToken = request.cookies["refresh_token"];
+    const refreshToken = request.body["refresh_token"];
 
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
