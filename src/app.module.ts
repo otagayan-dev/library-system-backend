@@ -11,6 +11,7 @@ import { FileModule } from "./file/file.module";
 import { BorrowingModule } from "./borrowing/borrowing.module";
 import { PenaltiesModule } from "./penalties/penalties.module";
 import { HistoryModule } from "./history/history.module";
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { HistoryModule } from "./history/history.module";
     BorrowingModule,
     PenaltiesModule,
     HistoryModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
