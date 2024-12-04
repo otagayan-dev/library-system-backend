@@ -21,14 +21,17 @@ export class AnalyticsService {
   async getBorrowTransactionTraffic(dto: AnalyticsDto) {
     const { tick, timeSpan } = dto;
 
-    return this.dataSource
+    const query = this.dataSource
       .createQueryBuilder()
       .select("interval", "interval")
       .addSelect('COUNT("borrowTransaction".id)', "count")
       .from(
         `(SELECT generate_series(
-          CURRENT_DATE - INTERVAL ${getTimeSpanShortNotation(timeSpan)}, 
-          CURRENT_DATE::timestamp, 
+         ${getDateTruncExpression(
+           `CURRENT_TIMESTAMP - INTERVAL ${getTimeSpanShortNotation(timeSpan)}`,
+           tick,
+         )}, 
+          ${getDateTruncExpression("CURRENT_TIMESTAMP::timestamp", tick)}, 
           ${getTickIntervalShortNotation(tick)}
         ) AS interval)`,
         "interval_series",
@@ -46,7 +49,10 @@ export class AnalyticsService {
         '"borrowTransaction"."created_at" = "interval_series".interval',
       )
       .groupBy("interval_series.interval")
-      .orderBy("interval_series.interval", "ASC")
-      .getRawMany();
+      .orderBy("interval_series.interval", "ASC");
+
+    this.logger.debug("Query: ", query.getQuery());
+
+    return query.getRawMany();
   }
 }
