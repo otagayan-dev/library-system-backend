@@ -105,7 +105,7 @@ export class AnalyticsService {
     const query = this.dataSource
       .createQueryBuilder()
       .select("interval", "interval")
-      .addSelect('COUNT("borrowTransaction".id)', "count")
+      .addSelect('CAST(COUNT("borrowTransaction".id) AS INT)', "count")
       .from(
         `(SELECT generate_series(
          ${getDateTruncExpression(
