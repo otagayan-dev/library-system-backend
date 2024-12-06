@@ -1,4 +1,5 @@
 import { Tick } from "../types/ticks.type";
+import { TimePeriod } from "../types/time-period.type";
 import { TimeSpan } from "../types/timespan.type";
 
 export function getDateTruncExpression(field: string, tick: Tick): string {

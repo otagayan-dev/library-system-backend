@@ -20,3 +20,5 @@ export const TICK_VALUES = [
   "6hrs",
   "1day",
 ] as const;
+
+export const TIME_PERIOD = ["daily", "weekly", "monthly", "yearly"] as const;
