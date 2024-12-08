@@ -11,13 +11,22 @@ import { FileModule } from "./file/file.module";
 import { BorrowingModule } from "./borrowing/borrowing.module";
 import { PenaltiesModule } from "./penalties/penalties.module";
 import { HistoryModule } from "./history/history.module";
-import { AnalyticsModule } from './analytics/analytics.module';
+import { AnalyticsModule } from "./analytics/analytics.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ".env",
+      envFilePath: (() => {
+        const env = process.env.NODE_ENV || "development"; // Default to 'development'
+        const envFiles = [
+          `.env.${env}.local`, // Priority 1
+          `.env.${env}`, // Priority 2
+          `.env.local`, // Priority 3
+          `.env`, // Priority 4
+        ];
+        return envFiles;
+      })(),
     }),
     TypeOrmModule.forRoot({
       type: "postgres",

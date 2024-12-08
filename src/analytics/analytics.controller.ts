@@ -2,6 +2,7 @@ import { Controller, Get, Query } from "@nestjs/common";
 import { AnalyticsService } from "./analytics.service";
 import { AnalyticsDto } from "./dto/common-analytics.dto";
 import { GetPopularBooksDto } from "./dto/get-popular-books.dto";
+import { GetTopActiveUsersDto } from "./dto/get-top-active-users.dto";
 
 @Controller("analytics")
 export class AnalyticsController {
@@ -15,5 +16,10 @@ export class AnalyticsController {
   @Get("popular-books")
   getPopularBooks(@Query() dto: GetPopularBooksDto) {
     return this.analyticsService.getPopularBooks(dto);
+  }
+
+  @Get("top-active-users")
+  getTopActiveUsers(@Query() dto: GetTopActiveUsersDto) {
+    return this.analyticsService.getTopActiveUsers(dto);
   }
 }
