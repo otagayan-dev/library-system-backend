@@ -42,6 +42,11 @@ async function bootstrap() {
   // Serve static files from the uploads folder
   app.useStaticAssets(join(__dirname, "..", "uploads"), {
     prefix: "/uploads",
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*"); // or specific domain
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    },
   });
 
   await app.listen(3000);
